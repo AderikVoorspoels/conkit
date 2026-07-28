@@ -477,7 +477,7 @@ def main():
         if atype == 'EXTRA_CANONICAL':
             orig_str = f"{orig_seq_id}{orig_icode.strip()}"
             new_str = f"{new_seq_id}{new_icode.strip()}"
-            current_residue = f'*** {resname} ({orig_str}→{new_str}) ***'
+            current_residue = f'*** {resname} ({orig_str} → {new_str}) ***'
             table_rows.append(((new_seq_id, new_icode), [current_residue, 'N/A', '', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']))
 
     table_rows.sort(key=lambda x: x[0])
