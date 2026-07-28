@@ -31,6 +31,7 @@ def construct_seq_from_chain(chain, return_borders=True, place_holder='?', alpha
     from conkit.misc.rescodes import IRRELEVANT_res_codes as rescodes_to_ignore
 
     residues = unfold_entities(chain, "R")
+    residues = [r for r in residues if r.get_resname().strip() not in rescodes_to_ignore]
     # Sort by (integer seq_id, insertion code) so 92 comes before 92A before 92B.
     residues.sort(key=lambda r: (r.get_id()[1], r.get_id()[2]))
 
