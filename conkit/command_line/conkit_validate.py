@@ -96,8 +96,7 @@ def create_argument_parser():
                         type=is_executable, help="Path to areaimol executable to calculate solvent accesibility for RNA")
     parser.add_argument("--dnatco_exe", dest="dnatco_exe", default=None,
                         type=is_executable, help="Path to dnatco executable to calculate CANA categories for RNA")
-    parser.add_argument("--gemmi_exe", dest="gemmi_exe", default=None,
-                        type=is_executable, help="Path to the gemmi executable for converting mmcif to legacy pdb required for areaimol")
+
 
     parser.add_argument("--gap_opening_penalty", dest="gap_opening_penalty", default=-1, type=float,
                         help="Gap opening penalty")
@@ -180,8 +179,17 @@ def calculate_dnatco(structfile, filetype, dnatco_exe):
 
     if filetype != 'mmcif':
         if filetype == 'pdb':
-            subprocess.run(['pdb2cif',structfile,structfile.replace('.cif','.pdb')])  # step to try to rescue pdb file entered should be changed because it silently introduces a dependency perhaps this can/should be replaced by a gemmin based call? also the swapping of the extensions is likely not a great way to do this
-            structfile = structfile.replace('.cif','.pdb')
+            import gemmi as _gemmi
+            cif_path = os.path.splitext(structfile)[0] + '.cif'
+            try:
+                st = _gemmi.read_structure(structfile)
+                st.setup_entities()
+                st.assign_label_seq_id()
+                st.make_mmcif_document().write_file(cif_path)
+            except Exception as e:
+                logger.warning("DNATCO: PDB→mmCIF conversion failed: %s; skipping DNATCO.", e)
+                return
+            structfile = cif_path
         else:
             logger.warning("DNATCO: unrecognised structure file type %r (expected 'pdb' or 'mmcif'); skipping DNATCO calculation.", filetype)
             return
@@ -347,7 +355,7 @@ def main():
 
         elif args.moltype=='RNA':
             try:
-                ext_info = areaimol_ACC(usable_model, args.pdbformat, args.areaimol_exe, tempfile_instructions_name='areaimol_acc_instructions.txt', tempfile_out_name='areaimol_log.log', gemmi_exe=args.gemmi_exe)
+                ext_info = areaimol_ACC(usable_model, args.pdbformat, args.areaimol_exe, tempfile_instructions_name='areaimol_acc_instructions.txt', tempfile_out_name='areaimol_log.log')
             except Exception as e:
                 logger.warning("areaimol ACC calculation failed; proceeding with ACC=0. Error: %s", e)
                 ext_info = None
