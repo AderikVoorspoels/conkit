@@ -431,6 +431,11 @@ def main():
 
     residue_info['NEW_REGISTER'] = ''
 
+    # Which residues are "called errors" for the table uses the consecutive-run
+    # filter (min_error_length) rather than per-residue threshold crossing, so
+    # isolated spikes above threshold are not flagged without their neighbours.
+    svm_called_errors = validation.data.set_index('RESNUM')['SVM_CALLED_ERROR'].to_dict()
+
     table = PrettyTable()
     table.field_names = ["Residue", "Predicted score", "Suggested register", "map align filter", "classifier filter","plddt", "predicted contacts", "Q in error"]
 
@@ -464,7 +469,7 @@ def main():
         else:
             current_residue = f'{residue_letter} ({num_display})'
 
-        score = _error_score_template.format(score) if score > args.score_threshold else _correct_score_template.format(score)
+        score = _error_score_template.format(score) if svm_called_errors.get(resnum, False) else _correct_score_template.format(score)
         if type(cmo_filter) in [int, float]:
             cmo_filter = _error_score_template.format(cmo_filter) if cmo_filter > args.cmo_filter_threshold else _correct_score_template.format(cmo_filter)
         if type(rf_filter) in [int, float]:
@@ -496,6 +501,9 @@ def main():
 
     if args.output_json:
         residue_info_json = residue_info.to_dict(orient='list')
+        residue_info_json['SVM_CALLED_ERROR'] = [
+            bool(svm_called_errors.get(r, False)) for r in residue_info_json['RESNUM']
+        ]
         residue_info_json['orig_resnum'] = [
             '{}{}'.format(*original_map.get((r, ' '), (r, ' ', ''))[:2]).rstrip()
             for r in residue_info_json['RESNUM']
